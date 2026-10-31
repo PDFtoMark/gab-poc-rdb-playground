@@ -52,6 +52,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: 'POC: comment posted by the privileged workflow_run job on an attacker-chosen issue/PR number taken from the untrusted artifact.',
+              body: 'POC: this comment was posted by the privileged workflow_run job for run ' + context.payload.workflow_run.id + ' but targets PR #' + prNumber + ' which was chosen by the untrusted artifact.',
             });
             core.info('comment id ' + r.data.id);
