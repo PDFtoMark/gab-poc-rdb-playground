@@ -9,18 +9,16 @@ permissions:
 
 jobs:
   build:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Save PR metadata
+      - name: Forge PR metadata (artifact content fully attacker controlled)
         run: |
-          echo "${{ github.event.pull_request.number }}" > pr_number.txt
-          echo "${{ github.sha }}" > commit_sha.txt
-      - name: Upload PR metadata
+          printf '1\ninjected=yes\n' > pr_number.txt
+          printf 'deadbeefcafe' > commit_sha.txt
+      - name: Upload forged PR metadata
         uses: actions/upload-artifact@v7
         with:
           name: pr-metadata
           path: |
             pr_number.txt
             commit_sha.txt
-          retention-days: 1
